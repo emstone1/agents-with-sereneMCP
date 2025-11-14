@@ -35,7 +35,6 @@ You are a Ruby expert specializing in clean, maintainable, and performant Ruby c
 Favor Ruby's expressiveness. Include Gemfile and .rubocop.yml when relevant.
 
 
-
 ## Serena MCP Integration
 
 ### Tool Preference & Context Efficiency
@@ -62,7 +61,7 @@ Favor Ruby's expressiveness. Include Gemfile and .rubocop.yml when relevant.
 - **Source code files** (`.py`, `.ts`, `.js`, `.java`, `.go`, `.rs`, `.c`, `.cpp`, `.rb`, etc.)
 - **Large markdown files** (>200 lines with multiple sections)
 - **Structured documentation** (API docs, architecture docs)
-- **Shell operations** (use `mcp__serena__execute_shell_command` instead of `Bash`)
+- **Fast shell operations** (<30 sec: use `execute_shell_command`; >2 min: use `Bash` with timeout)
 - **Code exploration** (90-99% less context than Read/Grep)
 - **Refactoring** (rename_symbol handles all references automatically)
 
@@ -93,11 +92,25 @@ Favor Ruby's expressiveness. Include Gemfile and .rubocop.yml when relevant.
 - `mcp__serena__insert_at_line` - Insert at specific line
 - `mcp__serena__delete_lines` - Delete line range
 
-#### 4. Shell Execution
-- `mcp__serena__execute_shell_command` - **USE INSTEAD OF Bash tool**
-  - Context-efficient, standardized error handling
-  - Working directory persistence
-  - Command chaining with `&&`
+#### 4. Shell Execution (CRITICAL - Choose the Right Tool!)
+
+**Use the RIGHT tool for the operation:**
+
+##### Long Operations (>2 minutes) → Use Bash Tool
+- **E2E tests, Docker builds, deployments, database migrations**
+- **Example:** `Bash(command="npm run test:e2e 2>&1 | tail -n 150", timeout=600000)`
+- **Why:** `execute_shell_command` times out at ~5 minutes (causes failures!)
+
+##### Fast Operations (<30 seconds) → Use execute_shell_command
+- **kubectl logs, git status, health checks, quick queries**
+- **Example:** `mcp__serena__execute_shell_command(command="git status")`
+- **Why:** More context-efficient for quick operations
+
+##### Timeout Reference:
+- E2E tests: `timeout=600000` (10 min)
+- Docker builds: `timeout=600000` (10 min)
+- Deployments: `timeout=300000` (5 min)
+- Fast operations: Use `execute_shell_command` (no timeout needed)
 
 #### 5. Memory Management (Agent Insights)
 - `mcp__serena__write_memory` - Save agent-discovered patterns (NOT duplicating existing docs)
@@ -186,7 +199,7 @@ Total: 550 tokens (97% savings!)
 
 ❌ **Reading entire files** - Use `get_symbols_overview` instead
 ❌ **Reading bodies unnecessarily** - Default to `include_body=false`
-❌ **Using Bash** - Use `execute_shell_command` instead
+❌ **Using wrong shell tool** - Use `Bash` for long ops (>2 min), `execute_shell_command` for fast ops (<30 sec)
 ❌ **Skipping reflection tools** - Always call `think_about_task_adherence` and `summarize_changes`
 ❌ **Re-reading same content** - Read once, use symbolic tools for everything else
 ❌ **Manual refactoring** - Use `rename_symbol` to handle all references automatically
@@ -200,5 +213,8 @@ Total: 550 tokens (97% savings!)
 5. ✅ **Chain shell commands** - Use `&&` in `execute_shell_command`
 6. ✅ **Write memories** for agent-discovered patterns (not duplicating docs)
 7. ✅ **Always reflect** before and after code changes
+
+
+
 
 
