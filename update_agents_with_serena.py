@@ -31,6 +31,40 @@ def already_has_serena_section(content):
     """Check if the file already has Serena MCP section."""
     return "## Serena MCP Integration" in content or "serena" in content.lower()
 
+def find_serena_section_bounds(content):
+    """
+    Find the start and end of the existing Serena MCP Integration section.
+    Returns (start_line, end_line) or (None, None) if not found.
+    """
+    lines = content.split('\n')
+    start_line = None
+    end_line = None
+
+    # Find the start of the Serena section
+    for i, line in enumerate(lines):
+        if line.strip() == "## Serena MCP Integration":
+            start_line = i
+            break
+
+    if start_line is None:
+        return None, None
+
+    # Find the end (next ## section or end of file)
+    for i in range(start_line + 1, len(lines)):
+        if lines[i].strip().startswith("## ") and not lines[i].strip().startswith("### "):
+            end_line = i
+            break
+
+    # If no next section found, section goes to end of file
+    if end_line is None:
+        end_line = len(lines)
+
+    # Back up to remove trailing blank lines
+    while end_line > start_line and lines[end_line - 1].strip() == '':
+        end_line -= 1
+
+    return start_line, end_line
+
 def find_insertion_point(content):
     """
     Find the best insertion point for the Serena MCP section.
@@ -71,33 +105,59 @@ def update_agent_file(file_path, template):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Check if already has Serena section
-    if already_has_serena_section(content):
-        return False, "Already has Serena MCP section"
-
-    # Find insertion point
     lines = content.split('\n')
-    insertion_point = find_insertion_point(content)
-
-    # Insert the template
     template_lines = template.split('\n')
 
-    # Add blank lines before and after for spacing
-    new_lines = (
-        lines[:insertion_point] +
-        ['', ''] +  # Blank lines before
-        template_lines +
-        ['', ''] +  # Blank lines after
-        lines[insertion_point:]
-    )
+    # Check if already has Serena section
+    has_serena = already_has_serena_section(content)
 
-    new_content = '\n'.join(new_lines)
+    if has_serena:
+        # Replace the existing section
+        start_line, end_line = find_serena_section_bounds(content)
 
-    # Write back
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(new_content)
+        if start_line is None:
+            return False, "Could not find Serena section bounds"
 
-    return True, "Updated successfully"
+        # Remove blank lines before the section
+        while start_line > 0 and lines[start_line - 1].strip() == '':
+            start_line -= 1
+
+        # Replace the section
+        new_lines = (
+            lines[:start_line] +
+            ['', ''] +  # Blank lines before
+            template_lines +
+            ['', ''] +  # Blank lines after
+            lines[end_line:]
+        )
+
+        new_content = '\n'.join(new_lines)
+
+        # Write back
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+
+        return True, "Replaced existing Serena section"
+    else:
+        # Insert new section
+        insertion_point = find_insertion_point(content)
+
+        # Add blank lines before and after for spacing
+        new_lines = (
+            lines[:insertion_point] +
+            ['', ''] +  # Blank lines before
+            template_lines +
+            ['', ''] +  # Blank lines after
+            lines[insertion_point:]
+        )
+
+        new_content = '\n'.join(new_lines)
+
+        # Write back
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+
+        return True, "Added new Serena section"
 
 def main():
     """Main function to update all agent files."""
@@ -115,7 +175,9 @@ def main():
 
     # Update each file
     updated_count = 0
-    skipped_count = 0
+    replaced_count = 0
+    added_count = 0
+    failed_count = 0
 
     for agent_file in agent_files:
         relative_path = str(agent_file)
@@ -124,14 +186,20 @@ def main():
         if success:
             print(f"✅ {relative_path}: {message}")
             updated_count += 1
+            if "Replaced" in message:
+                replaced_count += 1
+            elif "Added" in message:
+                added_count += 1
         else:
-            print(f"⏭️  {relative_path}: {message}")
-            skipped_count += 1
+            print(f"❌ {relative_path}: {message}")
+            failed_count += 1
 
     print()
     print("=" * 80)
-    print(f"✅ Updated: {updated_count} files")
-    print(f"⏭️  Skipped: {skipped_count} files")
+    print(f"✅ Total Updated: {updated_count} files")
+    print(f"   - Replaced existing sections: {replaced_count}")
+    print(f"   - Added new sections: {added_count}")
+    print(f"❌ Failed: {failed_count} files")
     print(f"📊 Total: {len(agent_files)} files")
     print("=" * 80)
     print()

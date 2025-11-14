@@ -238,30 +238,49 @@
 ### Category 5: Shell Execution
 
 #### `mcp__serena__execute_shell_command`
-**Purpose:** Execute shell commands
+**Purpose:** Execute shell commands for FAST operations (<30 seconds)
 
-**CRITICAL FOR AGENTS:** ALL agents and subagents should use THIS tool instead of the `Bash` tool!
+**CRITICAL FOR AGENTS:** Choose the RIGHT tool based on operation duration!
 
-**When to use:**
-- Running tests
-- Git operations
-- Installing dependencies
-- Any shell operation within agents
+**When to use execute_shell_command:**
+- ✅ Fast operations (<30 seconds)
+- Git status/log/diff commands
+- kubectl logs/get commands
+- Quick health checks
+- Fast database queries
+- npm/yarn list commands
+
+**When to use Bash tool instead:**
+- ✅ Long operations (>2 minutes)
+- E2E tests (`npm run test:e2e` - use `timeout=600000`)
+- Docker builds (`docker build` - use `timeout=600000`)
+- Deployments (`helm upgrade` - use `timeout=300000`)
+- Database migrations (use appropriate timeout)
+- Full test suites
 
 **Parameters:**
 ```json
 {
-  "command": "pytest tests/ -v",
+  "command": "git status",
   "cwd": "."
 }
 ```
 
-**Why Use This Instead of Bash Tool?**
-1. Context efficiency
-2. Working directory persistence
-3. Standardized error handling
-4. Command chaining with `&&`
-5. Token savings
+**Why This Distinction Matters:**
+1. **execute_shell_command** times out at ~5 minutes (causes failures on long ops!)
+2. **Bash tool** supports custom timeout parameter (up to 10 minutes)
+3. **Context efficiency** - use execute_shell_command for fast ops
+4. **Reliability** - use Bash with timeout for long ops
+
+**Example (Long Operation):**
+```
+Bash(command="npm run test:e2e 2>&1 | tail -n 150", timeout=600000)
+```
+
+**Example (Fast Operation):**
+```
+mcp__serena__execute_shell_command(command="git status")
+```
 
 ---
 
@@ -401,10 +420,13 @@
 ✅ RIGHT: find_symbol(include_body=false)  # Structure only
 ```
 
-### Mistake 3: Using Bash Instead of Serena
+### Mistake 3: Using Wrong Shell Tool
 ```
-❌ WRONG: Bash(command="pytest tests/")
-✅ RIGHT: mcp__serena__execute_shell_command(command="pytest tests/")
+❌ WRONG: execute_shell_command(command="npm run test:e2e")  # Times out!
+✅ RIGHT: Bash(command="npm run test:e2e 2>&1 | tail -n 150", timeout=600000)
+
+❌ WRONG: Bash(command="git status")  # Wastes context
+✅ RIGHT: execute_shell_command(command="git status")
 ```
 
 ### Mistake 4: Forgetting Reflection Tools
@@ -431,7 +453,8 @@
 | Add code after symbol | `insert_after_symbol` | `body` |
 | Rename symbol globally | `rename_symbol` | `new_name` |
 | Small line edits | `replace_lines` | `start_line, end_line` |
-| Run shell command | `execute_shell_command` | `command` |
+| **Fast shell command (<30s)** | `execute_shell_command` | `command` |
+| **Long shell command (>2min)** | `Bash` (not Serena!) | `timeout` |
 | Before code changes | `think_about_task_adherence` | - |
 | After code changes | `summarize_changes` | - |
 
@@ -458,7 +481,7 @@
 5. **Think before editing:** Use reflection tools
 6. **Prefer symbolic editing:** Use `replace_symbol_body` over line-based edits
 7. **Let Serena handle references:** Use `rename_symbol` instead of manual edits
-8. **Execute via Serena:** Use `execute_shell_command` instead of Bash
+8. **Choose right shell tool:** Use `execute_shell_command` for fast ops (<30s), `Bash` with timeout for long ops (>2min)
 
 ---
 

@@ -21,9 +21,28 @@
     },
     {
       "category": "shell",
-      "tools": ["execute_shell_command"],
-      "preferred_over": ["Bash"],
-      "use_case": "All shell operations for agents/subagents"
+      "tools": ["execute_shell_command", "Bash"],
+      "use_case": "Shell operations - choose based on duration",
+      "shell_execution": {
+        "fast_operations": {
+          "tool": "execute_shell_command",
+          "max_duration": "30 seconds",
+          "examples": ["git status", "kubectl logs", "health checks", "npm list"],
+          "why": "Context-efficient for quick operations"
+        },
+        "long_operations": {
+          "tool": "Bash",
+          "timeout_ms": {
+            "e2e_tests": 600000,
+            "docker_builds": 600000,
+            "deployments": 300000,
+            "migrations": 300000,
+            "full_test_suites": 600000
+          },
+          "examples": ["npm run test:e2e", "docker build", "helm upgrade", "db migrations"],
+          "why": "Prevents timeout errors (execute_shell_command times out at ~5 minutes)"
+        }
+      }
     },
     {
       "category": "memory",
