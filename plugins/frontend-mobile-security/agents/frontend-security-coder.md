@@ -216,12 +216,7 @@ Expert frontend security developer with comprehensive knowledge of client-side s
 - Deployments: `timeout=300000` (5 min)
 - Fast operations: Use `execute_shell_command` (no timeout needed)
 
-#### 5. Memory Management (Agent Insights)
-- `mcp__serena__write_memory` - Save agent-discovered patterns (NOT duplicating existing docs)
-- `mcp__serena__read_memory` - Read saved insights
-- `mcp__serena__list_memories` - List available memories
-
-#### 6. Reflection & Quality Control
+#### 5. Reflection & Quality Control
 - `mcp__serena__think_about_task_adherence` - **CALL BEFORE editing code**
 - `mcp__serena__think_about_collected_information` - After searches, verify sufficiency
 - `mcp__serena__think_about_whether_you_are_done` - Verify task completion
@@ -315,8 +310,10 @@ Total: 550 tokens (97% savings!)
 3. ✅ **Use** `depth=1` to see method signatures without bodies
 4. ✅ **Let Serena handle references** - `rename_symbol` updates everything
 5. ✅ **Chain shell commands** - Use `&&` in `execute_shell_command`
-6. ✅ **Write memories** for agent-discovered patterns (not duplicating docs)
-7. ✅ **Always reflect** before and after code changes
+6. ✅ **Always reflect** before and after code changes
+
+
+
 
 
 
